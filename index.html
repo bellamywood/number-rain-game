@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Hex Rain - Decimal to Hex Game</title>
+  <title>Number Rain - Base Conversion Game</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     * {
@@ -27,7 +27,7 @@
       border: 1px solid rgba(148, 163, 184, 0.3);
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
       padding: 1.5rem 1.5rem 1.25rem;
-      max-width: 820px;
+      max-width: 840px;
       width: 100%;
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
       position: relative;
@@ -153,7 +153,7 @@
     .weights-row,
     .grid-row {
       display: grid;
-      grid-template-columns: 110px 120px 120px 1fr;
+      grid-template-columns: 110px repeat(2, 120px) 1fr;
       gap: 0.3rem;
       align-items: center;
     }
@@ -258,7 +258,8 @@
       transform: scale(0.97);
     }
 
-    .hex-digit {
+    .hex-digit,
+    .dec-digit {
       width: 100%;
       height: 32px;
       border-radius: 0.45rem;
@@ -275,10 +276,44 @@
         background 0.1s ease, border-color 0.1s ease;
     }
 
-    .hex-digit:active {
+    .hex-digit:active,
+    .dec-digit:active {
       transform: scale(0.96);
       box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
       border-color: #2563eb;
+    }
+
+    .bit-group {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.15rem;
+    }
+
+    .bit-btn {
+      height: 28px;
+      border-radius: 0.35rem;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.08s ease, box-shadow 0.08s ease,
+        background 0.1s ease, border-color 0.1s ease;
+    }
+
+    .bit-btn.on {
+      background: #22c55e;
+      color: #022c22;
+      border-color: #22c55e;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.6);
+    }
+
+    .bit-btn:active {
+      transform: scale(0.95);
     }
 
     .mono-preview {
@@ -335,6 +370,56 @@
       accent-color: #22c55e;
     }
 
+    /* Mode-specific subtle styling */
+    .game-shell.mode-dec_to_hex {
+      border-color: #38bdf8;
+      box-shadow: 0 18px 45px rgba(56, 189, 248, 0.25);
+    }
+    .game-shell.mode-dec_to_hex .game-title {
+      color: #38bdf8;
+    }
+
+    .game-shell.mode-hex_to_dec {
+      border-color: #a855f7;
+      box-shadow: 0 18px 45px rgba(168, 85, 247, 0.25);
+    }
+    .game-shell.mode-hex_to_dec .game-title {
+      color: #a855f7;
+    }
+
+    .game-shell.mode-dec_to_bin {
+      border-color: #22c55e;
+      box-shadow: 0 18px 45px rgba(34, 197, 94, 0.25);
+    }
+    .game-shell.mode-dec_to_bin .game-title {
+      color: #22c55e;
+    }
+
+    .game-shell.mode-bin_to_dec {
+      border-color: #f97316;
+      box-shadow: 0 18px 45px rgba(249, 115, 22, 0.25);
+    }
+    .game-shell.mode-bin_to_dec .game-title {
+      color: #f97316;
+    }
+
+    .game-shell.mode-bin_to_hex {
+      border-color: #2dd4bf;
+      box-shadow: 0 18px 45px rgba(45, 212, 191, 0.25);
+    }
+    .game-shell.mode-bin_to_hex .game-title {
+      color: #2dd4bf;
+    }
+
+    .game-shell.mode-hex_to_bin {
+      border-color: #fb7185;
+      box-shadow: 0 18px 45px rgba(251, 113, 133, 0.25);
+    }
+    .game-shell.mode-hex_to_bin .game-title {
+      color: #fb7185;
+    }
+
+    /* How-to overlay */
     .howto-overlay {
       position: fixed;
       inset: 0;
@@ -397,7 +482,7 @@
 
       .weights-row,
       .grid-row {
-        grid-template-columns: 90px 100px 100px 1fr;
+        grid-template-columns: 90px repeat(2, 100px) 1fr;
       }
     }
 
@@ -418,7 +503,7 @@
 
       .weights-row,
       .grid-row {
-        grid-template-columns: 80px 80px 80px 1fr;
+        grid-template-columns: 80px repeat(2, 80px) 1fr;
       }
     }
   </style>
@@ -427,7 +512,7 @@
   <div class="game-shell" id="gameShell">
     <div class="game-header">
       <div>
-        <h1 class="game-title" id="gameTitle">Hex Rain - Decimal to Hex</h1>
+        <h1 class="game-title" id="gameTitle">Decimal → Hex Rain</h1>
         <div class="game-subtitle" id="gameSubtitle">
           Each row shows a decimal number. Click the hex digits to make the
           matching hexadecimal value before the grid fills up.
@@ -436,6 +521,7 @@
       <div class="score-panel">
         <div>Score: <strong id="score">0</strong></div>
         <div>Rows solved: <strong id="rowsSolved">0</strong></div>
+        <div>Level: <strong id="levelLabel">1</strong></div>
       </div>
     </div>
 
@@ -445,6 +531,17 @@
         <button class="btn secondary" id="resetBtn">Restart Game</button>
       </div>
       <div class="right-controls">
+        <div>
+          <div class="label-small">Game mode</div>
+          <select id="modeSelect">
+            <option value="dec_to_hex" selected>Decimal → Hex</option>
+            <option value="hex_to_dec">Hex → Decimal</option>
+            <option value="dec_to_bin">Decimal → Binary</option>
+            <option value="bin_to_dec">Binary → Decimal</option>
+            <option value="bin_to_hex">Binary → Hex</option>
+            <option value="hex_to_bin">Hex → Binary</option>
+          </select>
+        </div>
         <div>
           <div class="label-small">Spawn speed</div>
           <select id="speedSelect">
@@ -465,14 +562,14 @@
     </div>
 
     <div id="status" class="status-line important">
-      Press <strong>Start</strong> to begin. Match each target using the hex
+      Press <strong>Start</strong> to begin. Match each target using the
       buttons.
     </div>
 
     <div class="weights-row">
-      <div class="cell target-head" id="headerTarget">Target (dec)</div>
-      <div class="cell" id="headerCol1">High hex digit</div>
-      <div class="cell" id="headerCol2">Low hex digit</div>
+      <div class="cell target-head" id="headerTarget">Target</div>
+      <div class="cell" id="headerCol1">Left buttons</div>
+      <div class="cell" id="headerCol2">Right buttons</div>
       <div class="cell value-head" id="headerValue">Your value</div>
     </div>
 
@@ -493,6 +590,7 @@
     </div>
   </div>
 
+  <!-- How to play overlay -->
   <div class="howto-overlay" id="howToOverlay">
     <div class="howto-backdrop" id="howToBackdrop"></div>
     <div class="howto-card">
@@ -509,11 +607,21 @@
     const statusEl = document.getElementById("status");
     const scoreEl = document.getElementById("score");
     const rowsSolvedEl = document.getElementById("rowsSolved");
+    const levelEl = document.getElementById("levelLabel");
     const startBtn = document.getElementById("startBtn");
     const resetBtn = document.getElementById("resetBtn");
     const speedSelect = document.getElementById("speedSelect");
+    const modeSelect = document.getElementById("modeSelect");
     const soundToggle = document.getElementById("soundToggle");
     const progressBar = document.getElementById("progressBar");
+    const gameShell = document.getElementById("gameShell");
+    const gameTitleEl = document.getElementById("gameTitle");
+    const gameSubtitleEl = document.getElementById("gameSubtitle");
+    const infoTipEl = document.getElementById("infoTip");
+    const headerTargetEl = document.getElementById("headerTarget");
+    const headerCol1El = document.getElementById("headerCol1");
+    const headerCol2El = document.getElementById("headerCol2");
+    const headerValueEl = document.getElementById("headerValue");
 
     const howToBtn = document.getElementById("howToBtn");
     const howToOverlay = document.getElementById("howToOverlay");
@@ -533,43 +641,51 @@
     let running = false;
     let spawnTimer = null;
 
+    // Sound state
     let audioCtx = null;
     let soundOn = true;
 
-    function randomTarget() {
-      // 1–255 (fits in two hex digits, no zero to keep it challenging)
-      return 1 + Math.floor(Math.random() * 255);
+    // Mode
+    let conversionMode = "dec_to_hex";
+
+    // Utility
+    function randomInt(min, maxInclusive) {
+      return min + Math.floor(Math.random() * (maxInclusive - min + 1));
+    }
+
+    function toHex(value) {
+      return value.toString(16).toUpperCase();
     }
 
     function toHex2(value) {
       return value.toString(16).toUpperCase().padStart(2, "0");
     }
 
-    function spawnRow() {
-      if (!running) return;
-
-      if (rows.length >= maxRows) {
-        gameOver("Grid is full! Game over.");
-        return;
-      }
-
-      const row = {
-        id: nextId++,
-        target: randomTarget(),
-        hi: 0,
-        lo: 0,
-      };
-
-      rows.push(row);
-      renderRows();
+    function toBin(value, length) {
+      return value.toString(2).toUpperCase().padStart(length, "0");
     }
 
-    function getRowValue(row) {
-      return row.hi * 16 + row.lo;
+    function getDifficultyTier() {
+      // Every 8 rows solved bumps the tier; cap at 3
+      const tier = Math.floor(rowsSolved / 8);
+      return Math.min(tier, 3);
     }
 
-    function findRowIndexById(id) {
-      return rows.findIndex((r) => r.id === id);
+    function getLevel() {
+      return getDifficultyTier() + 1;
+    }
+
+    function helperTextAllowed() {
+      // After 8 solved rows, hide the "what you made" helper text
+      return rowsSolved < 8;
+    }
+
+    function getScorePerRow() {
+      const speed = parseInt(speedSelect.value, 10);
+      if (speed === 10000) return 5;   // Slow
+      if (speed === 8000) return 10;  // Normal
+      if (speed === 5000) return 20;   // Fast
+      return 10;
     }
 
     function playBeep(type) {
@@ -610,62 +726,180 @@
       osc.stop(now + duration + 0.02);
     }
 
-    function handleDigitClick(rowId, nibble) {
-      const index = findRowIndexById(rowId);
-      if (index === -1) return;
+    function getDynamicConfig() {
+      const tier = getDifficultyTier();
 
-      const row = rows[index];
-
-      if (nibble === "hi") {
-        row.hi = (row.hi + 1) % 16;
-      } else {
-        row.lo = (row.lo + 1) % 16;
+      if (conversionMode === "dec_to_hex") {
+        if (tier === 0) return { min: 1, max: 15 };
+        if (tier === 1) return { min: 1, max: 63 };
+        return { min: 1, max: 255 };
       }
 
-      const value = getRowValue(row);
-
-      if (value === row.target) {
-        score += getScorePerRow();
-        rowsSolved += 1;
-        rows.splice(index, 1);
-        statusEl.textContent = `Correct! ${toHex2(
-          value
-        )} in hex = ${row.target} in decimal.`;
-        statusEl.className = "status-line success";
-        playBeep("correct");
-      } else {
-        statusEl.textContent = `Row ${rowId}: 0x${toHex2(
-          value
-        )} = ${value}. Match ${row.target}.`;
-        statusEl.className = "status-line";
-        playBeep("incorrect");
+      if (conversionMode === "hex_to_dec") {
+        // Limited to 1–99 due to 2 decimal digits
+        if (tier === 0) return { min: 1, max: 15 };
+        if (tier === 1) return { min: 1, max: 63 };
+        return { min: 1, max: 99 };
       }
 
-      updateScores();
-      renderRows();
+      if (conversionMode === "dec_to_bin") {
+        if (tier === 0) return { bitLength: 4 };
+        if (tier === 1) return { bitLength: 6 };
+        return { bitLength: 8 };
+      }
+
+      if (conversionMode === "bin_to_dec") {
+        if (tier === 0) return { bitLength: 4 };
+        if (tier === 1) return { bitLength: 6 };
+        return { bitLength: 8 };
+      }
+
+      if (conversionMode === "bin_to_hex") {
+        if (tier === 0) return { bitLength: 4 };
+        if (tier === 1) return { bitLength: 6 };
+        return { bitLength: 8 };
+      }
+
+      if (conversionMode === "hex_to_bin") {
+        if (tier === 0) return { bitLength: 4 };
+        if (tier === 1) return { bitLength: 6 };
+        return { bitLength: 8 };
+      }
+
+      return {};
     }
 
-    function getScorePerRow() {
-      const speed = parseInt(speedSelect.value, 10);
-      if (speed === 10000) return 5;
-      if (speed === 8000) return 10;
-      if (speed === 5000) return 20;
-      return 10;
+    function createRow() {
+      const id = nextId++;
+      const cfg = getDynamicConfig();
+
+      if (conversionMode === "dec_to_hex") {
+        const dec = randomInt(cfg.min, cfg.max); // never 0
+        return {
+          id,
+          decimalTarget: dec,
+          hi: 0,
+          lo: 0,
+        };
+      }
+
+      if (conversionMode === "hex_to_dec") {
+        const dec = randomInt(cfg.min, cfg.max); // never 0
+        const hexTarget = toHex2(dec);
+        return {
+          id,
+          decimalTarget: dec,
+          hexTarget,
+          tens: 0,
+          ones: 0,
+        };
+      }
+
+      if (conversionMode === "dec_to_bin") {
+        const bitLength = cfg.bitLength;
+        const max = Math.pow(2, bitLength) - 1;
+        const dec = randomInt(1, max); // never 0
+        return {
+          id,
+          decimalTarget: dec,
+          bits: new Array(bitLength).fill(0),
+          bitLength,
+        };
+      }
+
+      if (conversionMode === "bin_to_dec") {
+        const bitLength = cfg.bitLength;
+        const max = Math.pow(2, bitLength) - 1;
+        const dec = randomInt(1, max); // never 0
+        const binaryTarget = toBin(dec, bitLength);
+        return {
+          id,
+          decimalTarget: dec,
+          binaryTarget,
+          bitLength,
+          tens: 0,
+          ones: 0,
+        };
+      }
+
+      if (conversionMode === "bin_to_hex") {
+        const bitLength = cfg.bitLength;
+        const max = Math.pow(2, bitLength) - 1;
+        const dec = randomInt(1, max); // never 0
+        const binaryTarget = toBin(dec, bitLength);
+        return {
+          id,
+          decimalTarget: dec,
+          binaryTarget,
+          bitLength,
+          hi: 0,
+          lo: 0,
+        };
+      }
+
+      // hex_to_bin
+      const bitLength = cfg.bitLength;
+      const max = Math.pow(2, bitLength) - 1;
+      const dec = randomInt(1, max); // never 0
+      const digits = bitLength <= 4 ? 1 : 2;
+      const hexTarget = dec.toString(16).toUpperCase().padStart(digits, "0");
+      return {
+        id,
+        decimalTarget: dec,
+        hexTarget,
+        bits: new Array(bitLength).fill(0),
+        bitLength,
+      };
+    }
+
+    function getRowValue(row) {
+      if (conversionMode === "dec_to_hex" || conversionMode === "bin_to_hex") {
+        return row.hi * 16 + row.lo;
+      }
+
+      if (conversionMode === "hex_to_dec" || conversionMode === "bin_to_dec") {
+        return row.tens * 10 + row.ones;
+      }
+
+      // dec_to_bin or hex_to_bin
+      let value = 0;
+      for (let i = 0; i < row.bits.length; i++) {
+        value = value * 2 + row.bits[i];
+      }
+      return value;
+    }
+
+    function resetRowValues(row) {
+      if (conversionMode === "dec_to_hex" || conversionMode === "bin_to_hex") {
+        row.hi = 0;
+        row.lo = 0;
+      } else if (
+        conversionMode === "hex_to_dec" ||
+        conversionMode === "bin_to_dec"
+      ) {
+        row.tens = 0;
+        row.ones = 0;
+      } else if (
+        conversionMode === "dec_to_bin" ||
+        conversionMode === "hex_to_bin"
+      ) {
+        row.bits = new Array(row.bitLength).fill(0);
+      }
+    }
+
+    function updateLevel() {
+      levelEl.textContent = getLevel();
     }
 
     function updateScores() {
       scoreEl.textContent = score;
       rowsSolvedEl.textContent = rowsSolved;
+      updateLevel();
     }
 
     function updateProgressBar() {
       const fill = (rows.length / maxRows) * 100;
       progressBar.style.width = `${Math.min(fill, 100)}%`;
-    }
-
-    function resetRowValues(row) {
-      row.hi = 0;
-      row.lo = 0;
     }
 
     function renderRows() {
@@ -678,52 +912,226 @@
 
         const targetCell = document.createElement("div");
         targetCell.className = "cell target";
-        targetCell.textContent = row.target;
 
-        const hiCell = document.createElement("div");
-        const loCell = document.createElement("div");
+        const col1Cell = document.createElement("div");
+        const col2Cell = document.createElement("div");
         const valueCell = document.createElement("div");
         valueCell.className = "cell value";
 
-        const hiBtn = document.createElement("button");
-        hiBtn.className = "hex-digit";
-        hiBtn.textContent = row.hi.toString(16).toUpperCase();
-        hiBtn.dataset.nibble = "hi";
-
-        const loBtn = document.createElement("button");
-        loBtn.className = "hex-digit";
-        loBtn.textContent = row.lo.toString(16).toUpperCase();
-        loBtn.dataset.nibble = "lo";
-
-        hiCell.appendChild(hiBtn);
-        loCell.appendChild(loBtn);
-
-        const value = getRowValue(row);
-
         const valueText = document.createElement("span");
         valueText.className = "value-text";
-
-        if (value === row.target && (row.hi !== 0 || row.lo !== 0)) {
-          valueCell.classList.add("correct");
-        } else if (row.hi !== 0 || row.lo !== 0) {
-          valueCell.classList.add("incorrect");
-        }
-
-        valueText.innerHTML = `<span class="mono-preview">${toHex2(
-          value
-        )}</span> = ${value}`;
 
         const rowResetBtn = document.createElement("button");
         rowResetBtn.className = "row-reset-btn";
         rowResetBtn.textContent = "Reset values";
         rowResetBtn.dataset.role = "rowreset";
 
+        if (conversionMode === "dec_to_hex") {
+          const value = getRowValue(row);
+          targetCell.textContent = row.decimalTarget;
+
+          const hiBtn = document.createElement("button");
+          hiBtn.className = "hex-digit";
+          hiBtn.textContent = row.hi.toString(16).toUpperCase();
+          hiBtn.dataset.role = "hex";
+          hiBtn.dataset.place = "hi";
+
+          const loBtn = document.createElement("button");
+          loBtn.className = "hex-digit";
+          loBtn.textContent = row.lo.toString(16).toUpperCase();
+          loBtn.dataset.role = "hex";
+          loBtn.dataset.place = "lo";
+
+          col1Cell.appendChild(hiBtn);
+          col2Cell.appendChild(loBtn);
+
+          if (value === row.decimalTarget && (row.hi !== 0 || row.lo !== 0)) {
+            valueCell.classList.add("correct");
+          } else if (row.hi !== 0 || row.lo !== 0) {
+            valueCell.classList.add("incorrect");
+          }
+
+          valueText.innerHTML = `<span class="mono-preview">${toHex2(
+            value
+          )}</span> = ${value}`;
+        } else if (conversionMode === "hex_to_dec") {
+          const value = getRowValue(row);
+          targetCell.innerHTML = `<span class="mono-preview">${row.hexTarget}</span>`;
+
+          const tensBtn = document.createElement("button");
+          tensBtn.className = "dec-digit";
+          tensBtn.textContent = row.tens.toString(10);
+          tensBtn.dataset.role = "dec";
+          tensBtn.dataset.place = "tens";
+
+          const onesBtn = document.createElement("button");
+          onesBtn.className = "dec-digit";
+          onesBtn.textContent = row.ones.toString(10);
+          onesBtn.dataset.role = "dec";
+          onesBtn.dataset.place = "ones";
+
+          col1Cell.appendChild(tensBtn);
+          col2Cell.appendChild(onesBtn);
+
+          if (
+            value === row.decimalTarget &&
+            (row.tens !== 0 || row.ones !== 0)
+          ) {
+            valueCell.classList.add("correct");
+          } else if (row.tens !== 0 || row.ones !== 0) {
+            valueCell.classList.add("incorrect");
+          }
+
+          valueText.textContent = value.toString(10);
+        } else if (conversionMode === "dec_to_bin") {
+          const value = getRowValue(row);
+          targetCell.textContent = row.decimalTarget;
+
+          const bitLength = row.bitLength;
+          const split = Math.ceil(bitLength / 2);
+          const hiGroup = document.createElement("div");
+          hiGroup.className = "bit-group";
+          const loGroup = document.createElement("div");
+          loGroup.className = "bit-group";
+
+          for (let i = 0; i < split; i++) {
+            const btn = document.createElement("button");
+            btn.className = "bit-btn" + (row.bits[i] ? " on" : "");
+            btn.textContent = row.bits[i];
+            btn.dataset.role = "bit";
+            btn.dataset.index = i.toString();
+            hiGroup.appendChild(btn);
+          }
+
+          for (let i = split; i < bitLength; i++) {
+            const btn = document.createElement("button");
+            btn.className = "bit-btn" + (row.bits[i] ? " on" : "");
+            btn.textContent = row.bits[i];
+            btn.dataset.role = "bit";
+            btn.dataset.index = i.toString();
+            loGroup.appendChild(btn);
+          }
+
+          col1Cell.appendChild(hiGroup);
+          col2Cell.appendChild(loGroup);
+
+          const anyBitOn = row.bits.some((b) => b === 1);
+          if (value === row.decimalTarget && anyBitOn) {
+            valueCell.classList.add("correct");
+          } else if (anyBitOn) {
+            valueCell.classList.add("incorrect");
+          }
+
+          valueText.innerHTML = `<span class="mono-preview">${row.bits.join(
+            ""
+          )}</span> = ${value}`;
+        } else if (conversionMode === "bin_to_dec") {
+          const value = getRowValue(row);
+          targetCell.innerHTML = `<span class="mono-preview">${row.binaryTarget}</span>`;
+
+          const tensBtn = document.createElement("button");
+          tensBtn.className = "dec-digit";
+          tensBtn.textContent = row.tens.toString(10);
+          tensBtn.dataset.role = "dec";
+          tensBtn.dataset.place = "tens";
+
+          const onesBtn = document.createElement("button");
+          onesBtn.className = "dec-digit";
+          onesBtn.textContent = row.ones.toString(10);
+          onesBtn.dataset.role = "dec";
+          onesBtn.dataset.place = "ones";
+
+          col1Cell.appendChild(tensBtn);
+          col2Cell.appendChild(onesBtn);
+
+          if (
+            value === row.decimalTarget &&
+            (row.tens !== 0 || row.ones !== 0)
+          ) {
+            valueCell.classList.add("correct");
+          } else if (row.tens !== 0 || row.ones !== 0) {
+            valueCell.classList.add("incorrect");
+          }
+
+          valueText.textContent = value.toString(10);
+        } else if (conversionMode === "bin_to_hex") {
+          const value = getRowValue(row);
+          targetCell.innerHTML = `<span class="mono-preview">${row.binaryTarget}</span>`;
+
+          const hiBtn = document.createElement("button");
+          hiBtn.className = "hex-digit";
+          hiBtn.textContent = row.hi.toString(16).toUpperCase();
+          hiBtn.dataset.role = "hex";
+          hiBtn.dataset.place = "hi";
+
+          const loBtn = document.createElement("button");
+          loBtn.className = "hex-digit";
+          loBtn.textContent = row.lo.toString(16).toUpperCase();
+          loBtn.dataset.role = "hex";
+          loBtn.dataset.place = "lo";
+
+          col1Cell.appendChild(hiBtn);
+          col2Cell.appendChild(loBtn);
+
+          if (value === row.decimalTarget && (row.hi !== 0 || row.lo !== 0)) {
+            valueCell.classList.add("correct");
+          } else if (row.hi !== 0 || row.lo !== 0) {
+            valueCell.classList.add("incorrect");
+          }
+
+          valueText.innerHTML = `<span class="mono-preview">${toHex(
+            value
+          )}</span> = ${value}`;
+        } else if (conversionMode === "hex_to_bin") {
+          const value = getRowValue(row);
+          targetCell.innerHTML = `<span class="mono-preview">${row.hexTarget}</span>`;
+
+          const bitLength = row.bitLength;
+          const split = Math.ceil(bitLength / 2);
+          const hiGroup = document.createElement("div");
+          hiGroup.className = "bit-group";
+          const loGroup = document.createElement("div");
+          loGroup.className = "bit-group";
+
+          for (let i = 0; i < split; i++) {
+            const btn = document.createElement("button");
+            btn.className = "bit-btn" + (row.bits[i] ? " on" : "");
+            btn.textContent = row.bits[i];
+            btn.dataset.role = "bit";
+            btn.dataset.index = i.toString();
+            hiGroup.appendChild(btn);
+          }
+
+          for (let i = split; i < bitLength; i++) {
+            const btn = document.createElement("button");
+            btn.className = "bit-btn" + (row.bits[i] ? " on" : "");
+            btn.textContent = row.bits[i];
+            btn.dataset.role = "bit";
+            btn.dataset.index = i.toString();
+            loGroup.appendChild(btn);
+          }
+
+          col1Cell.appendChild(hiGroup);
+          col2Cell.appendChild(loGroup);
+
+          const anyBitOn = row.bits.some((b) => b === 1);
+          if (value === row.decimalTarget && anyBitOn) {
+            valueCell.classList.add("correct");
+          } else if (anyBitOn) {
+            valueCell.classList.add("incorrect");
+          }
+
+          valueText.innerHTML = `<span class="mono-preview">${row.bits.join(
+            ""
+          )}</span> = ${value}`;
+        }
+
         valueCell.appendChild(valueText);
         valueCell.appendChild(rowResetBtn);
 
         rowEl.appendChild(targetCell);
-        rowEl.appendChild(hiCell);
-        rowEl.appendChild(loCell);
+        rowEl.appendChild(col1Cell);
+        rowEl.appendChild(col2Cell);
         rowEl.appendChild(valueCell);
 
         gridEl.appendChild(rowEl);
@@ -732,15 +1140,173 @@
       updateProgressBar();
     }
 
+    function spawnRow() {
+      if (!running) return;
+      if (rows.length >= maxRows) {
+        gameOver("Grid is full! Game over.");
+        return;
+      }
+
+      const row = createRow();
+      rows.push(row);
+      renderRows();
+    }
+
+    function handleSolved(row, value) {
+      score += getScorePerRow();
+      rowsSolved += 1;
+      updateScores();
+      playBeep("correct");
+
+      if (helperTextAllowed()) {
+        if (conversionMode === "dec_to_hex") {
+          statusEl.textContent = `Correct! ${toHex2(
+            value
+          )} in hex = ${row.decimalTarget} in decimal.`;
+        } else if (conversionMode === "hex_to_dec") {
+          statusEl.textContent = `Correct! ${row.hexTarget} in hex = ${value} in decimal.`;
+        } else if (conversionMode === "dec_to_bin") {
+          statusEl.textContent = `Correct! ${row.bits.join(
+            ""
+          )} (binary) = ${row.decimalTarget} in decimal.`;
+        } else if (conversionMode === "bin_to_dec") {
+          statusEl.textContent = `Correct! ${row.binaryTarget} (binary) = ${value} in decimal.`;
+        } else if (conversionMode === "bin_to_hex") {
+          statusEl.textContent = `Correct! ${row.binaryTarget} (binary) = ${toHex(
+            value
+          )} in hex.`;
+        } else if (conversionMode === "hex_to_bin") {
+          statusEl.textContent = `Correct! ${row.hexTarget} (hex) = ${row.bits.join(
+            ""
+          )} in binary.`;
+        }
+        statusEl.className = "status-line success";
+      } else {
+        statusEl.textContent = "";
+        statusEl.className = "status-line";
+      }
+    }
+
+    function handleNotSolved(row, value) {
+      playBeep("incorrect");
+
+      if (helperTextAllowed()) {
+        if (conversionMode === "dec_to_hex") {
+          statusEl.textContent = `Row ${row.id}: you made ${toHex2(
+            value
+          )} = ${value}. Target decimal is ${row.decimalTarget}.`;
+        } else if (conversionMode === "hex_to_dec") {
+          statusEl.textContent = `Row ${row.id}: you chose ${value} (decimal) for ${
+            row.hexTarget
+          } (hex). Target is ${row.decimalTarget}.`;
+        } else if (conversionMode === "dec_to_bin") {
+          statusEl.textContent = `Row ${row.id}: you made ${row.bits.join(
+            ""
+          )} (binary) = ${value}. Target decimal is ${row.decimalTarget}.`;
+        } else if (conversionMode === "bin_to_dec") {
+          statusEl.textContent = `Row ${row.id}: you chose ${value} (decimal) for ${
+            row.binaryTarget
+          } (binary). Target is ${row.decimalTarget}.`;
+        } else if (conversionMode === "bin_to_hex") {
+          statusEl.textContent = `Row ${row.id}: you made ${toHex(
+            value
+          )} (hex) = ${value}. Target from ${row.binaryTarget} is ${toHex(
+            row.decimalTarget
+          )} (hex) / ${row.decimalTarget} (decimal).`;
+        } else if (conversionMode === "hex_to_bin") {
+          statusEl.textContent = `Row ${row.id}: you made ${row.bits.join(
+            ""
+          )} (binary) = ${value}. Target from ${
+            row.hexTarget
+          } is ${row.decimalTarget} (decimal).`;
+        }
+        statusEl.className = "status-line";
+      } else {
+        statusEl.textContent = "";
+        statusEl.className = "status-line";
+      }
+    }
+
+    function onHexDigitClick(rowId, place) {
+      const row = rows.find((r) => r.id === rowId);
+      if (!row) return;
+
+      if (conversionMode !== "dec_to_hex" && conversionMode !== "bin_to_hex") {
+        return;
+      }
+
+      if (place === "hi") {
+        row.hi = (row.hi + 1) % 16;
+      } else {
+        row.lo = (row.lo + 1) % 16;
+      }
+
+      const value = getRowValue(row);
+      if (value === row.decimalTarget) {
+        rows = rows.filter((r) => r.id !== rowId);
+        handleSolved(row, value);
+      } else {
+        handleNotSolved(row, value);
+      }
+      renderRows();
+    }
+
+    function onDecDigitClick(rowId, place) {
+      const row = rows.find((r) => r.id === rowId);
+      if (!row) return;
+
+      if (conversionMode !== "hex_to_dec" && conversionMode !== "bin_to_dec") {
+        return;
+      }
+
+      if (place === "tens") {
+        row.tens = (row.tens + 1) % 10;
+      } else {
+        row.ones = (row.ones + 1) % 10;
+      }
+
+      const value = getRowValue(row);
+      if (value === row.decimalTarget) {
+        rows = rows.filter((r) => r.id !== rowId);
+        handleSolved(row, value);
+      } else {
+        handleNotSolved(row, value);
+      }
+      renderRows();
+    }
+
+    function onBitClick(rowId, bitIndex) {
+      const row = rows.find((r) => r.id === rowId);
+      if (!row) return;
+
+      if (
+        conversionMode !== "dec_to_bin" &&
+        conversionMode !== "hex_to_bin"
+      ) {
+        return;
+      }
+
+      row.bits[bitIndex] = row.bits[bitIndex] === 0 ? 1 : 0;
+
+      const value = getRowValue(row);
+      if (value === row.decimalTarget) {
+        rows = rows.filter((r) => r.id !== rowId);
+        handleSolved(row, value);
+      } else {
+        handleNotSolved(row, value);
+      }
+      renderRows();
+    }
+
     function startGame() {
       if (running) return;
       running = true;
       statusEl.textContent =
-        "Game running... click the hex digits to match each target.";
+        "Rain mode: rows will appear over time. Match each target using the buttons.";
       statusEl.className = "status-line important";
       startBtn.textContent = "Pause";
 
-      spawnRow();
+      spawnRow(); // first row
       const speed = parseInt(speedSelect.value, 10);
       spawnTimer = setInterval(spawnRow, speed);
     }
@@ -773,7 +1339,7 @@
 
       startBtn.textContent = "Start";
       statusEl.textContent =
-        "Press Start to begin. Match each target using hex.";
+        "Press Start to begin. Match each target using the buttons.";
       statusEl.className = "status-line important";
     }
 
@@ -789,16 +1355,146 @@
       statusEl.className = "status-line error";
     }
 
+    function updateModeUI() {
+      gameShell.classList.remove(
+        "mode-dec_to_hex",
+        "mode-hex_to_dec",
+        "mode-dec_to_bin",
+        "mode-bin_to_dec",
+        "mode-bin_to_hex",
+        "mode-hex_to_bin"
+      );
+      gameShell.classList.add(`mode-${conversionMode}`);
+
+      if (conversionMode === "dec_to_hex") {
+        gameTitleEl.textContent = "Decimal → Hex Rain";
+        gameSubtitleEl.innerHTML =
+          "Each row shows a decimal number. Click the hex digits to make the matching hexadecimal value before the grid fills up. Every 8 correct answers, numbers get a little larger.";
+        headerTargetEl.textContent = "Target (dec)";
+        headerCol1El.textContent = "High hex digit";
+        headerCol2El.textContent = "Low hex digit";
+        headerValueEl.textContent = "Your value (hex & dec)";
+        infoTipEl.innerHTML =
+          'Decimal → Hex: 16 in decimal is <span class="mono-preview">10</span> in hex.';
+      } else if (conversionMode === "hex_to_dec") {
+        gameTitleEl.textContent = "Hex → Decimal Rain";
+        gameSubtitleEl.innerHTML =
+          "Each row shows a hexadecimal number. Click the decimal tens and ones to make the matching decimal value before the grid fills up. Every 8 correct answers, the hex numbers get a bit bigger.";
+        headerTargetEl.textContent = "Target (hex)";
+        headerCol1El.textContent = "Tens digit (dec)";
+        headerCol2El.textContent = "Ones digit (dec)";
+        headerValueEl.textContent = "Your value (dec)";
+        infoTipEl.innerHTML =
+          'Hex → Decimal: <span class="mono-preview">3F</span> in hex is 63 in decimal.';
+      } else if (conversionMode === "dec_to_bin") {
+        gameTitleEl.textContent = "Decimal → Binary Rain";
+        gameSubtitleEl.innerHTML =
+          "Each row shows a decimal number. Click the bits (0/1) to make the matching binary value before the grid fills up. Every 8 correct answers, you get more bits (more columns).";
+        headerTargetEl.textContent = "Target (dec)";
+        headerCol1El.textContent = "Higher bits";
+        headerCol2El.textContent = "Lower bits";
+        headerValueEl.textContent = "Your value (bin & dec)";
+        infoTipEl.innerHTML =
+          'Decimal → Binary: 13 in decimal is <span class="mono-preview">00001101</span> in binary.';
+      } else if (conversionMode === "bin_to_dec") {
+        gameTitleEl.textContent = "Binary → Decimal Rain";
+        gameSubtitleEl.innerHTML =
+          "Each row shows a binary number. Click the decimal tens and ones to make the matching decimal value. Every 8 correct answers, the binary numbers get longer.";
+        headerTargetEl.textContent = "Target (bin)";
+        headerCol1El.textContent = "Tens digit (dec)";
+        headerCol2El.textContent = "Ones digit (dec)";
+        headerValueEl.textContent = "Your value (dec)";
+        infoTipEl.innerHTML =
+          'Binary → Decimal: <span class="mono-preview">00110010</span> is 50 in decimal.';
+      } else if (conversionMode === "bin_to_hex") {
+        gameTitleEl.textContent = "Binary → Hex Rain";
+        gameSubtitleEl.innerHTML =
+          "Each row shows a binary number. Click the hex digits to make the matching hexadecimal value. Every 8 correct answers, the binary numbers get longer.";
+        headerTargetEl.textContent = "Target (bin)";
+        headerCol1El.textContent = "High hex digit";
+        headerCol2El.textContent = "Low hex digit";
+        headerValueEl.textContent = "Your value (hex & dec)";
+        infoTipEl.innerHTML =
+          'Binary → Hex: <span class="mono-preview">1111</span> in binary is <span class="mono-preview">F</span> in hex.';
+      } else if (conversionMode === "hex_to_bin") {
+        gameTitleEl.textContent = "Hex → Binary Rain";
+        gameSubtitleEl.innerHTML =
+          "Each row shows a hexadecimal number. Click the bits (0/1) to make the matching binary value. Every 8 correct answers, you see more bits.";
+        headerTargetEl.textContent = "Target (hex)";
+        headerCol1El.textContent = "Higher bits";
+        headerCol2El.textContent = "Lower bits";
+        headerValueEl.textContent = "Your value (bin & dec)";
+        infoTipEl.innerHTML =
+          'Hex → Binary: <span class="mono-preview">F</span> in hex is <span class="mono-preview">1111</span> in binary.';
+      }
+    }
+
     function buildHowToContent() {
-      const title = "How to play: Decimal → Hex";
-      const intro = "Turn each decimal target into a matching hexadecimal value.";
-      const bullets = [
-        "Look at the number in the left column (decimal).",
-        "Click the left and right hex digit buttons to change them.",
-        "Your goal is to make a hex value that equals the decimal number.",
-        "Rows solved on Slow = 5 points, Normal = 10, Fast = 20.",
-        "Every 8 correct rows, the numbers get a little larger."
-      ];
+      let title = "How to play";
+      let intro = "";
+      let bullets = [];
+
+      if (conversionMode === "dec_to_hex") {
+        title = "How to play: Decimal → Hex";
+        intro = "Turn each decimal target into a matching hexadecimal value.";
+        bullets = [
+          "Look at the number in the left column (decimal).",
+          "Click the left and right hex digit buttons to change them.",
+          "Your goal is to make a hex value that equals the decimal number.",
+          "Rows solved on Slow = 5 points, Normal = 10, Fast = 20.",
+          "Every 8 correct rows, the numbers get a little larger and you move up a level."
+        ];
+      } else if (conversionMode === "hex_to_dec") {
+        title = "How to play: Hex → Decimal";
+        intro = "Turn each hexadecimal target into a decimal number.";
+        bullets = [
+          "Look at the hex number in the left column.",
+          "Click the tens and ones buttons to change the decimal answer.",
+          "Your goal is to match the decimal value of the hex number.",
+          "Slow / Normal / Fast change how many points you earn per row.",
+          "After 8 correct answers, the hex numbers get a bit bigger and the level increases."
+        ];
+      } else if (conversionMode === "dec_to_bin") {
+        title = "How to play: Decimal → Binary";
+        intro = "Turn each decimal target into a binary (0/1) answer.";
+        bullets = [
+          "Look at the decimal number in the left column.",
+          "Click bits (0/1) to build a binary number.",
+          "Your binary number should equal the decimal target.",
+          "Every 8 solves, you get more bits (more columns) and a higher level.",
+          "Speed changes how many points you earn per solved row."
+        ];
+      } else if (conversionMode === "bin_to_dec") {
+        title = "How to play: Binary → Decimal";
+        intro = "Turn each binary target into a decimal number.";
+        bullets = [
+          "Look at the binary number in the left column.",
+          "Click the tens and ones buttons to change your decimal guess.",
+          "Try to match the decimal value of that binary number.",
+          "Binary numbers get longer as you level up (every 8 solves).",
+          "Grid fills up = game over, so keep clearing rows!"
+        ];
+      } else if (conversionMode === "bin_to_hex") {
+        title = "How to play: Binary → Hex";
+        intro = "Turn each binary target into a hexadecimal value.";
+        bullets = [
+          "Look at the binary number on the left.",
+          "Click the two hex digit buttons to change the hex answer.",
+          "Your hex answer must be equal to the binary value.",
+          "More bits appear every 8 correct answers (higher levels).",
+          "Playing on Faster speed gives more points per row."
+        ];
+      } else if (conversionMode === "hex_to_bin") {
+        title = "How to play: Hex → Binary";
+        intro = "Turn each hexadecimal target into a binary number.";
+        bullets = [
+          "Look at the hex value in the left column.",
+          "Click the bit buttons (0/1) to build a binary number.",
+          "Your binary number should match the hex value.",
+          "More bits unlock as you solve rows (every 8 solves).",
+          "Choose the speed you like: slower is easier, faster gives more points."
+        ];
+      }
 
       howToTitleEl.textContent = title;
       howToIntroEl.textContent = intro;
@@ -819,6 +1515,7 @@
       howToOverlay.classList.remove("visible");
     }
 
+    // Event listeners
     startBtn.addEventListener("click", () => {
       if (!running && rows.length === 0) {
         startGame();
@@ -841,6 +1538,12 @@
       }
     });
 
+    modeSelect.addEventListener("change", () => {
+      conversionMode = modeSelect.value;
+      resetGame();
+      updateModeUI();
+    });
+
     soundToggle.addEventListener("change", () => {
       soundOn = soundToggle.checked;
     });
@@ -851,24 +1554,32 @@
       if (!rowEl) return;
       const rowId = parseInt(rowEl.dataset.id, 10);
 
-      if (target.dataset.role === "rowreset") {
+      const role = target.dataset.role;
+      if (!role) return;
+
+      if (role === "hex") {
+        const place = target.dataset.place;
+        onHexDigitClick(rowId, place);
+      } else if (role === "dec") {
+        const place = target.dataset.place;
+        onDecDigitClick(rowId, place);
+      } else if (role === "bit") {
+        const index = parseInt(target.dataset.index, 10);
+        onBitClick(rowId, index);
+      } else if (role === "rowreset") {
         const row = rows.find((r) => r.id === rowId);
         if (!row) return;
         resetRowValues(row);
         renderRows();
-        return;
       }
-
-      if (!target.classList.contains("hex-digit")) return;
-
-      const nibble = target.dataset.nibble;
-      handleDigitClick(rowId, nibble);
     });
 
     howToBtn.addEventListener("click", openHowTo);
     closeHowToBtn.addEventListener("click", closeHowTo);
     howToBackdrop.addEventListener("click", closeHowTo);
 
+    // Initialise
+    updateModeUI();
     resetGame();
   </script>
 </body>
