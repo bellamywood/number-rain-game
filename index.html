@@ -665,6 +665,17 @@
       return value.toString(2).toUpperCase().padStart(length, "0");
     }
 
+    // NEW: nibble splitter for binary strings (groups into 4-bit chunks)
+    function groupBits(bits, groupSize = 4) {
+      if (!bits) return "";
+      const s = Array.isArray(bits) ? bits.join("") : String(bits);
+      const len = s.length;
+      if (len <= groupSize) return s;
+      const first = s.slice(0, len - groupSize);
+      const last = s.slice(len - groupSize);
+      return first + " | " + last;
+    }
+
     function getDifficultyTier() {
       // Every 8 rows solved bumps the tier; cap at 3
       const tier = Math.floor(rowsSolved / 8);
@@ -754,16 +765,15 @@
         return { bitLength: 8 };
       }
 
+      // UPDATED: only 4 or 8 bits for bin ↔ hex to match exam-style nibble method
       if (conversionMode === "bin_to_hex") {
-        if (tier === 0) return { bitLength: 4 };
-        if (tier === 1) return { bitLength: 6 };
-        return { bitLength: 8 };
+        if (tier === 0) return { bitLength: 4 }; // 4 bits → 1 hex digit
+        return { bitLength: 8 };                 // 8 bits → 2 hex digits
       }
 
       if (conversionMode === "hex_to_bin") {
-        if (tier === 0) return { bitLength: 4 };
-        if (tier === 1) return { bitLength: 6 };
-        return { bitLength: 8 };
+        if (tier === 0) return { bitLength: 4 }; // 1 hex digit → 4 bits
+        return { bitLength: 8 };                 // 2 hex digits → 8 bits
       }
 
       return {};
@@ -1027,7 +1037,8 @@
           )}</span> = ${value}`;
         } else if (conversionMode === "bin_to_dec") {
           const value = getRowValue(row);
-          targetCell.innerHTML = `<span class="mono-preview">${row.binaryTarget}</span>`;
+          const groupedTarget = groupBits(row.binaryTarget);
+          targetCell.innerHTML = `<span class="mono-preview">${groupedTarget}</span>`;
 
           const tensBtn = document.createElement("button");
           tensBtn.className = "dec-digit";
@@ -1056,7 +1067,8 @@
           valueText.textContent = value.toString(10);
         } else if (conversionMode === "bin_to_hex") {
           const value = getRowValue(row);
-          targetCell.innerHTML = `<span class="mono-preview">${row.binaryTarget}</span>`;
+          const groupedTarget = groupBits(row.binaryTarget);
+          targetCell.innerHTML = `<span class="mono-preview">${groupedTarget}</span>`;
 
           const hiBtn = document.createElement("button");
           hiBtn.className = "hex-digit";
@@ -1079,9 +1091,10 @@
             valueCell.classList.add("incorrect");
           }
 
-          valueText.innerHTML = `<span class="mono-preview">${toHex(
-            value
-          )}</span> = ${value}`;
+          const hexVal = toHex(value);
+          valueText.innerHTML = `<span class="mono-preview">${groupBits(
+            row.bits || []
+          )}</span> = <span class="mono-preview">${hexVal}</span> (${value})`;
         } else if (conversionMode === "hex_to_bin") {
           const value = getRowValue(row);
           targetCell.innerHTML = `<span class="mono-preview">${row.hexTarget}</span>`;
@@ -1121,9 +1134,8 @@
             valueCell.classList.add("incorrect");
           }
 
-          valueText.innerHTML = `<span class="mono-preview">${row.bits.join(
-            ""
-          )}</span> = ${value}`;
+          const groupedBits = groupBits(row.bits);
+          valueText.innerHTML = `<span class="mono-preview">${groupedBits}</span> = ${value}`;
         }
 
         valueCell.appendChild(valueText);
@@ -1170,14 +1182,16 @@
             ""
           )} (binary) = ${row.decimalTarget} in decimal.`;
         } else if (conversionMode === "bin_to_dec") {
-          statusEl.textContent = `Correct! ${row.binaryTarget} (binary) = ${value} in decimal.`;
+          statusEl.textContent = `Correct! ${groupBits(
+            row.binaryTarget
+          )} (binary) = ${value} in decimal.`;
         } else if (conversionMode === "bin_to_hex") {
-          statusEl.textContent = `Correct! ${row.binaryTarget} (binary) = ${toHex(
-            value
-          )} in hex.`;
+          statusEl.textContent = `Correct! ${groupBits(
+            row.binaryTarget
+          )} (binary) = ${toHex(value)} in hex.`;
         } else if (conversionMode === "hex_to_bin") {
-          statusEl.textContent = `Correct! ${row.hexTarget} (hex) = ${row.bits.join(
-            ""
+          statusEl.textContent = `Correct! ${row.hexTarget} (hex) = ${groupBits(
+            row.bits
           )} in binary.`;
         }
         statusEl.className = "status-line success";
@@ -1204,18 +1218,18 @@
             ""
           )} (binary) = ${value}. Target decimal is ${row.decimalTarget}.`;
         } else if (conversionMode === "bin_to_dec") {
-          statusEl.textContent = `Row ${row.id}: you chose ${value} (decimal) for ${
+          statusEl.textContent = `Row ${row.id}: you chose ${value} (decimal) for ${groupBits(
             row.binaryTarget
-          } (binary). Target is ${row.decimalTarget}.`;
+          )} (binary). Target is ${row.decimalTarget}.`;
         } else if (conversionMode === "bin_to_hex") {
           statusEl.textContent = `Row ${row.id}: you made ${toHex(
             value
-          )} (hex) = ${value}. Target from ${row.binaryTarget} is ${toHex(
-            row.decimalTarget
-          )} (hex) / ${row.decimalTarget} (decimal).`;
+          )} (hex) = ${value}. Target from ${groupBits(
+            row.binaryTarget
+          )} is ${toHex(row.decimalTarget)} (hex) / ${row.decimalTarget} (decimal).`;
         } else if (conversionMode === "hex_to_bin") {
-          statusEl.textContent = `Row ${row.id}: you made ${row.bits.join(
-            ""
+          statusEl.textContent = `Row ${row.id}: you made ${groupBits(
+            row.bits
           )} (binary) = ${value}. Target from ${
             row.hexTarget
           } is ${row.decimalTarget} (decimal).`;
@@ -1405,27 +1419,27 @@
         headerCol2El.textContent = "Ones digit (dec)";
         headerValueEl.textContent = "Your value (dec)";
         infoTipEl.innerHTML =
-          'Binary → Decimal: <span class="mono-preview">00110010</span> is 50 in decimal.';
+          'Binary → Decimal: group bits into nibbles, e.g. <span class="mono-preview">0011 | 0010</span> = 50 in decimal.';
       } else if (conversionMode === "bin_to_hex") {
         gameTitleEl.textContent = "Binary → Hex Rain";
         gameSubtitleEl.innerHTML =
-          "Each row shows a binary number. Click the hex digits to make the matching hexadecimal value. Every 8 correct answers, the binary numbers get longer.";
+          "Each row shows a binary number. Group the bits into nibbles (4s) and click the hex digits to make the matching hexadecimal value. Every 8 correct answers, the binary numbers jump from 4 bits (1 nibble) to 8 bits (2 nibbles).";
         headerTargetEl.textContent = "Target (bin)";
         headerCol1El.textContent = "High hex digit";
         headerCol2El.textContent = "Low hex digit";
         headerValueEl.textContent = "Your value (hex & dec)";
         infoTipEl.innerHTML =
-          'Binary → Hex: <span class="mono-preview">1111</span> in binary is <span class="mono-preview">F</span> in hex.';
+          'Binary → Hex: split into nibbles, e.g. <span class="mono-preview">1011 | 0111</span> → <span class="mono-preview">B7</span>.';
       } else if (conversionMode === "hex_to_bin") {
         gameTitleEl.textContent = "Hex → Binary Rain";
         gameSubtitleEl.innerHTML =
-          "Each row shows a hexadecimal number. Click the bits (0/1) to make the matching binary value. Every 8 correct answers, you see more bits.";
+          "Each row shows a hexadecimal number. Click the bits (0/1) to make the matching binary value. Remember: each hex digit is exactly 4 bits (one nibble). 2 hex digits → 8 bits.";
         headerTargetEl.textContent = "Target (hex)";
         headerCol1El.textContent = "Higher bits";
         headerCol2El.textContent = "Lower bits";
         headerValueEl.textContent = "Your value (bin & dec)";
         infoTipEl.innerHTML =
-          'Hex → Binary: <span class="mono-preview">F</span> in hex is <span class="mono-preview">1111</span> in binary.';
+          'Hex → Binary: 1 hex digit → 4 bits, e.g. <span class="mono-preview">F</span> → <span class="mono-preview">1111</span>; <span class="mono-preview">B7</span> → <span class="mono-preview">1011 | 0111</span>.';
       }
     }
 
@@ -1469,6 +1483,7 @@
         intro = "Turn each binary target into a decimal number.";
         bullets = [
           "Look at the binary number in the left column.",
+          "You can mentally group bits into 4s (nibbles) to help with place values.",
           "Click the tens and ones buttons to change your decimal guess.",
           "Try to match the decimal value of that binary number.",
           "Binary numbers get longer as you level up (every 8 solves).",
@@ -1476,21 +1491,23 @@
         ];
       } else if (conversionMode === "bin_to_hex") {
         title = "How to play: Binary → Hex";
-        intro = "Turn each binary target into a hexadecimal value.";
+        intro = "Turn each binary target into a hexadecimal value using nibbles.";
         bullets = [
           "Look at the binary number on the left.",
+          "Split it into groups of 4 bits (nibbles). The game shows this as something like 1011 | 0111.",
+          "Each nibble becomes one hex digit.",
           "Click the two hex digit buttons to change the hex answer.",
-          "Your hex answer must be equal to the binary value.",
-          "More bits appear every 8 correct answers (higher levels).",
+          "More bits (4 → 8) appear every 8 correct answers (higher levels).",
           "Playing on Faster speed gives more points per row."
         ];
       } else if (conversionMode === "hex_to_bin") {
         title = "How to play: Hex → Binary";
-        intro = "Turn each hexadecimal target into a binary number.";
+        intro = "Turn each hexadecimal target into a binary number, 4 bits per hex digit.";
         bullets = [
           "Look at the hex value in the left column.",
-          "Click the bit buttons (0/1) to build a binary number.",
-          "Your binary number should match the hex value.",
+          "Remember: each hex digit is 4 bits (one nibble).",
+          "Click the bit buttons (0/1) to build a binary number that matches the hex.",
+          "For 2 hex digits you should end up with 8 bits, often shown as two nibbles like 1011 | 0111.",
           "More bits unlock as you solve rows (every 8 solves).",
           "Choose the speed you like: slower is easier, faster gives more points."
         ];
